@@ -109,7 +109,7 @@ echo "        Printer '${PRINTER_NAME}' registered (${PRINTER_URI})."
 
 # ── 7. Start AirSane ─────────────────────────────────────────────────────────
 echo "[7/7] Starting AirSane on port ${AIRSANE_PORT}..."
-airsaned --port="${AIRSANE_PORT}" &
+airsaned --listen-port="${AIRSANE_PORT}" &
 AIRSANE_PID=$!
 
 echo "════════════════════════════════════════"
