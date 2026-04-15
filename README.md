@@ -180,7 +180,7 @@ These are set at image build time, not at runtime.
 |---|---|---|
 | `BRSCAN4_URL` | yes | URL of the brscan4 `.deb` to download during build |
 | `AIRSANE_REPO` | no | Git remote for AirSane (default: upstream GitHub) |
-| `AIRSANE_REF` | no | Branch or tag to build AirSane from (default: `master`) |
+| `AIRSANE_REF` | no | Tag or branch to build AirSane from (default: `v.0.4.10`) |
 
 ---
 

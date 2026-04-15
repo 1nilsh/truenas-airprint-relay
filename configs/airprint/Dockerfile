@@ -21,7 +21,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && rm -rf /var/lib/apt/lists/*
 
 ARG AIRSANE_REPO=https://github.com/SimulPiscator/AirSane.git
-ARG AIRSANE_REF=master
+ARG AIRSANE_REF=v.0.4.10
 
 RUN git clone --depth=1 --branch "${AIRSANE_REF}" "${AIRSANE_REPO}" /airsane-src
 
