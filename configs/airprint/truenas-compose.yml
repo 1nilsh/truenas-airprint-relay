@@ -1,0 +1,83 @@
+# TrueNAS Scale – Custom App deployment manifest
+#
+# How to deploy
+# ──────────────
+# Apps → Discover Apps → Custom App → "Install via Compose"
+# Paste this file (or upload it) and fill in every value marked CHANGE_ME.
+#
+# Tested on TrueNAS Scale Electric Eel (24.10) and later, which support
+# Docker Compose natively for custom apps.
+
+name: airprint-relay
+
+services:
+  airprint-relay:
+    # Pin to an immutable SHA tag for production; 'latest' is fine for testing.
+    # Replace GITHUB_OWNER with your GitHub username / organisation.
+    image: ghcr.io/GITHUB_OWNER/truenas-airprint-relay:latest
+    restart: unless-stopped
+
+    # ── Ports ──────────────────────────────────────────────────────────────────
+    # Bind to a specific host IP if you don't want CUPS/AirSane reachable on all
+    # TrueNAS interfaces, e.g. "192.168.1.x:631:631".
+    ports:
+      - "631:631"    # CUPS / IPP (printing)
+      - "8090:8090"  # AirSane eSCL (scanning, used by iOS/macOS Continuity Camera)
+
+    # ── Volumes ────────────────────────────────────────────────────────────────
+    volumes:
+      # Host D-Bus socket – gives the container access to TrueNAS's Avahi daemon
+      # so AirPrint/AirScan services are announced via mDNS without a second
+      # Avahi instance inside the container.
+      - type: bind
+        source: /run/dbus/system_bus_socket
+        target: /run/dbus/system_bus_socket
+
+      # Optional: persist CUPS spool so queued jobs survive a container restart.
+      # Create the dataset first:  zfs create tank/apps/airprint-relay/cups-spool
+      # Then uncomment the lines below and set the correct pool path.
+      #- type: bind
+      #  source: /mnt/POOL/apps/airprint-relay/cups-spool
+      #  target: /var/spool/cups
+
+    # ── Environment variables ──────────────────────────────────────────────────
+    environment:
+      # CUPS web-UI admin account (created inside the container at startup).
+      CUPS_ADMIN_USER: "admin"
+      CUPS_ADMIN_PASSWORD: "CHANGE_ME"
+
+      # Printer queue name shown in macOS/iOS print dialogs.
+      PRINTER_NAME: "Brother-MFC-1910W"
+
+      # Raw/JetDirect URI – port 9100 is standard for Brother network printers.
+      PRINTER_URI: "socket://192.168.1.81:9100"
+
+      # brlaser PPD path inside the container.
+      # To find the right filename after first boot:
+      #   docker exec -it airprint-relay-airprint-relay-1 \
+      #     find /usr/share/ppd/brlaser/ -name '*1910*'
+      PRINTER_PPD: "/usr/share/ppd/brlaser/brother-MFC1910W-brlaser.ppd"
+
+      # IP of the printer on your network (used by brscan4 for scanning).
+      SCANNER_IP: "192.168.1.81"
+      # Friendly name shown in scanner lists.
+      SCANNER_NAME: "Brother"
+      # Must match a model name known to brscan4.
+      # List supported models with:  brsaneconfig4 -q
+      SCANNER_MODEL: "MFC-1910W"
+
+      # AirSane listening port (keep in sync with the port mapping above).
+      AIRSANE_PORT: "8090"
+
+      # Tell libdbus/libavahi-client exactly where the host socket is mounted.
+      # This is the default path on Linux; set it explicitly to be safe.
+      DBUS_SYSTEM_BUS_ADDRESS: "unix:path=/run/dbus/system_bus_socket"
+
+    # ── Health check ───────────────────────────────────────────────────────────
+    # TrueNAS uses this to report app status in the UI.
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:631/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

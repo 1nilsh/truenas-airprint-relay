@@ -1,0 +1,38 @@
+services:
+  airprint-relay:
+    # Replace GITHUB_OWNER with your GitHub username or organisation.
+    # The tag is set to 'latest'; pin to a SHA for reproducible deploys.
+    image: ghcr.io/GITHUB_OWNER/truenas-airprint-relay:latest
+    restart: unless-stopped
+
+    ports:
+      - "631:631"    # CUPS / IPP
+      - "8090:8090"  # AirSane eSCL
+
+    volumes:
+      # Mount the host's D-Bus socket so the container can register
+      # mDNS services with TrueNAS's existing Avahi daemon.
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+
+    environment:
+      # ── CUPS admin credentials ──────────────────────────────────────────────
+      CUPS_ADMIN_USER: "admin"
+      CUPS_ADMIN_PASSWORD: "CHANGE_ME"
+
+      # ── Printer (IPP/socket URI printed on the network) ────────────────────
+      # PRINTER_URI uses socket:// for raw/JetDirect printing on port 9100.
+      PRINTER_NAME: "Brother-MFC-1910W"
+      PRINTER_URI: "socket://PRINTER_IP:9100"
+
+      # Path to the brlaser PPD inside the container.
+      # Run `find /usr/share/ppd/brlaser/ -name '*1910*'` inside the container
+      # to discover the exact filename for your model.
+      PRINTER_PPD: "/usr/share/ppd/brlaser/brother-MFC1910W-brlaser.ppd"
+
+      # ── Scanner (brscan4 + AirSane eSCL) ───────────────────────────────────
+      SCANNER_IP: "SCANNER_IP"
+      SCANNER_NAME: "Brother"
+      SCANNER_MODEL: "MFC-1910W"
+
+      # ── AirSane listener port (must match the port mapping above) ──────────
+      AIRSANE_PORT: "8090"
