@@ -76,6 +76,10 @@ RUN apt-get update \
 # Copy AirSane binary (web assets are embedded in the binary)
 COPY --from=builder /usr/local/bin/airsaned       /usr/local/bin/airsaned
 
+# Only load the Brother brscan4 backend — the default dll.conf enables 70+
+# backends, at least one of which segfaults during sane_get_devices() init.
+RUN echo "brother4" > /etc/sane.d/dll.conf
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
