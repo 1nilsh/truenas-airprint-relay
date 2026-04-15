@@ -80,16 +80,17 @@ done
 
 # ── 6. Configure CUPS policies and add printer ────────────────────────────────
 echo "[6/7] Configuring CUPS policies and registering printer..."
-cupsctl --share-printers --remote-admin --remote-any
+cupsctl -h localhost:631 --share-printers --remote-admin --remote-any
 
 lpadmin \
+    -h localhost:631 \
     -p "${PRINTER_NAME}" \
     -E \
     -v "${PRINTER_URI}" \
     -m "${PRINTER_MODEL}"
 
-cupsenable  "${PRINTER_NAME}"
-cupsaccept  "${PRINTER_NAME}"
+cupsenable -h localhost:631 "${PRINTER_NAME}"
+cupsaccept -h localhost:631 "${PRINTER_NAME}"
 
 echo "        Printer '${PRINTER_NAME}' registered (${PRINTER_URI})."
 
