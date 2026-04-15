@@ -71,9 +71,8 @@ RUN wget -qO /tmp/brscan4.deb "${BRSCAN4_URL}" \
     && rm -f /tmp/brscan4.deb \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy AirSane binary and web assets from build stage
+# Copy AirSane binary (web assets are embedded in the binary)
 COPY --from=builder /usr/local/bin/airsaned       /usr/local/bin/airsaned
-COPY --from=builder /usr/local/share/airsane      /usr/local/share/airsane
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
