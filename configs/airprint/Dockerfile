@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────
 # Stage 1 – Build AirSane from source
 # ─────────────────────────────────────────────
-FROM debian:bookworm AS builder
+FROM debian:bullseye AS builder
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -35,7 +35,7 @@ RUN cmake -B build \
 # ─────────────────────────────────────────────
 # Stage 2 – Runtime image
 # ─────────────────────────────────────────────
-FROM debian:bookworm-slim
+FROM debian:bullseye-slim
 
 # brscan4 .deb URL – must be supplied as a build-arg; no default to avoid stale bakes
 ARG BRSCAN4_URL
@@ -60,7 +60,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libusb-1.0-0 \
     libjpeg62-turbo \
     libpng16-16 \
-    libtiff6 \
+    libtiff5 \
     # Utilities
     ca-certificates \
     dbus \

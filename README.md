@@ -21,7 +21,7 @@ The image is built for `linux/amd64` and published to GitHub Container Registry 
   build-airprint.yml      GitHub Actions – build and push to ghcr.io
 
 configs/airprint/
-  Dockerfile              Multi-stage: compile AirSane, then debian:bookworm-slim runtime
+  Dockerfile              Multi-stage: compile AirSane, then debian:bullseye-slim runtime
   entrypoint.sh           Ordered startup script (brscan4 → CUPS → printer → AirSane)
   docker-compose.yml      Generic reference compose file
 ```
