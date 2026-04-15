@@ -65,9 +65,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     passwd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install brscan4 (resolving any missing deps with apt-get -f install)
-RUN wget -qO /tmp/brscan4.deb "${BRSCAN4_URL}" \
-    && dpkg -i /tmp/brscan4.deb || apt-get install -fy --no-install-recommends \
+# Install brscan4 – apt-get install on a local path fetches missing deps automatically
+RUN apt-get update \
+    && wget -qO /tmp/brscan4.deb "${BRSCAN4_URL}" \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /tmp/brscan4.deb \
     && rm -f /tmp/brscan4.deb \
     && rm -rf /var/lib/apt/lists/*
 
