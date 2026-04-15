@@ -15,10 +15,11 @@ set -euo pipefail
 
 # ── 1. Configure brscan4 scanner backend ─────────────────────────────────────
 echo "[1/7] Registering scanner with brscan4 (${SCANNER_NAME} / ${SCANNER_MODEL} @ ${SCANNER_IP})..."
+# brsaneconfig4 exits non-zero if the entry already exists (container restart)
 brsaneconfig4 -a \
     name="${SCANNER_NAME}" \
     model="${SCANNER_MODEL}" \
-    ip="${SCANNER_IP}"
+    ip="${SCANNER_IP}" || true
 
 # ── 2. Create CUPS admin user ─────────────────────────────────────────────────
 echo "[2/7] Configuring CUPS admin user '${CUPS_ADMIN_USER}'..."
@@ -81,31 +82,28 @@ done
 # ── 6. Configure CUPS policies and add printer ────────────────────────────────
 echo "[6/7] Configuring CUPS policies and registering printer..."
 
-# cupsctl and lpadmin connect to the admin interface, which can become ready
-# slightly after the HTTP health check passes. Retry until they succeed.
-for i in $(seq 1 10); do
-    out=$(cupsctl -h localhost:631 --share-printers --remote-admin --remote-any 2>&1)
-    echo "${out}"
-    echo "${out}" | grep -qiE "bad file descriptor|unable to connect" \
-        || { echo "        cupsctl OK."; break; }
-    [ "${i}" -eq 10 ] && { echo "ERROR: cupsctl failed after 10 attempts." >&2; exit 1; }
-    echo "        cupsctl not ready, retrying in 2s... (${i}/10)"
-    sleep 2
-done
+# The CUPS admin socket can become ready slightly after the HTTP health check
+# passes. _cups_retry wraps a command in a retry loop, checking the exit code
+# directly — no fragile output parsing.
+_cups_retry() {
+    local label="$1"; shift
+    local i
+    for i in $(seq 1 10); do
+        if "$@"; then
+            echo "        ${label} OK."
+            return 0
+        fi
+        [ "${i}" -eq 10 ] \
+            && { echo "ERROR: ${label} failed after 10 attempts." >&2; return 1; }
+        echo "        ${label} not ready, retrying in 2s... (${i}/10)"
+        sleep 2
+    done
+}
 
-for i in $(seq 1 10); do
-    out=$(lpadmin -h localhost:631 \
-        -p "${PRINTER_NAME}" -E -v "${PRINTER_URI}" -m "${PRINTER_MODEL}" 2>&1)
-    echo "${out}"
-    echo "${out}" | grep -qiE "bad file descriptor|unable to connect" \
-        || { echo "        lpadmin OK."; break; }
-    [ "${i}" -eq 10 ] && { echo "ERROR: lpadmin failed after 10 attempts." >&2; exit 1; }
-    echo "        lpadmin not ready, retrying in 2s... (${i}/10)"
-    sleep 2
-done
-
-cupsenable -h localhost:631 "${PRINTER_NAME}"
-cupsaccept -h localhost:631 "${PRINTER_NAME}"
+_cups_retry cupsctl   cupsctl   -h localhost:631 --share-printers --remote-admin --remote-any
+_cups_retry lpadmin   lpadmin   -h localhost:631 -p "${PRINTER_NAME}" -E -v "${PRINTER_URI}" -m "${PRINTER_MODEL}"
+_cups_retry cupsenable cupsenable -h localhost:631 "${PRINTER_NAME}"
+_cups_retry cupsaccept cupsaccept -h localhost:631 "${PRINTER_NAME}"
 
 echo "        Printer '${PRINTER_NAME}' registered (${PRINTER_URI})."
 
