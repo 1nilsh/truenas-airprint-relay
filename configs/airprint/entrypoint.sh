@@ -10,7 +10,7 @@ set -euo pipefail
 : "${CUPS_ADMIN_PASSWORD:?CUPS_ADMIN_PASSWORD is required}"
 : "${PRINTER_NAME:?PRINTER_NAME is required}"
 : "${PRINTER_URI:?PRINTER_URI is required}"
-: "${PRINTER_PPD:?PRINTER_PPD is required}"
+: "${PRINTER_MODEL:?PRINTER_MODEL is required}"
 : "${AIRSANE_PORT:?AIRSANE_PORT is required}"
 
 # ── 1. Configure brscan4 scanner backend ─────────────────────────────────────
@@ -86,7 +86,7 @@ lpadmin \
     -p "${PRINTER_NAME}" \
     -E \
     -v "${PRINTER_URI}" \
-    -P "${PRINTER_PPD}"
+    -m "${PRINTER_MODEL}"
 
 cupsenable  "${PRINTER_NAME}"
 cupsaccept  "${PRINTER_NAME}"

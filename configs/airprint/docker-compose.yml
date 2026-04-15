@@ -24,10 +24,9 @@ services:
       PRINTER_NAME: "Brother-MFC-1910W"
       PRINTER_URI: "socket://PRINTER_IP:9100"
 
-      # Path to the brlaser PPD inside the container.
-      # Run `find /usr/share/ppd/brlaser/ -name '*1910*'` inside the container
-      # to discover the exact filename for your model.
-      PRINTER_PPD: "/usr/share/ppd/brlaser/brother-MFC1910W-brlaser.ppd"
+      # brlaser model URI – format: drv:///brlaser.drv/<pcfilename>.ppd
+      # Find yours with: grep -i 'PCFileName' /usr/share/cups/drv/brlaser.drv
+      PRINTER_MODEL: "drv:///brlaser.drv/br1910w.ppd"
 
       # ── Scanner (brscan4 + AirSane eSCL) ───────────────────────────────────
       SCANNER_IP: "SCANNER_IP"

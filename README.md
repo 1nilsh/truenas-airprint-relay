@@ -105,7 +105,7 @@ services:
       CUPS_ADMIN_PASSWORD: "CHANGE_ME"
       PRINTER_NAME: "Brother-MFC-1910W"
       PRINTER_URI: "socket://192.168.1.81:9100"
-      PRINTER_PPD: "/usr/share/ppd/brlaser/brother-MFC1910W-brlaser.ppd"
+      PRINTER_MODEL: "drv:///brlaser.drv/br1910w.ppd"
       SCANNER_IP: "192.168.1.81"
       SCANNER_NAME: "Brother"
       SCANNER_MODEL: "MFC-1910W"
@@ -140,19 +140,26 @@ All runtime behaviour is controlled via environment variables. Nothing is hard-c
 | `CUPS_ADMIN_PASSWORD` | yes | Password for the CUPS admin account |
 | `PRINTER_NAME` | yes | Queue name shown in print dialogs (no spaces) |
 | `PRINTER_URI` | yes | Device URI, e.g. `socket://192.168.1.81:9100` |
-| `PRINTER_PPD` | yes | Absolute path to the brlaser PPD inside the container (see below) |
+| `PRINTER_MODEL` | yes | brlaser model URI, format: `drv:///brlaser.drv/<pcfilename>.ppd` (see below) |
 | `SCANNER_IP` | yes | IP address of the scanner on the network |
 | `SCANNER_NAME` | yes | Friendly name registered with brscan4 |
 | `SCANNER_MODEL` | yes | Model string recognised by brscan4 (see below) |
 | `AIRSANE_PORT` | yes | Port AirSane listens on; must match the port mapping |
 | `DBUS_SYSTEM_BUS_ADDRESS` | recommended | Override D-Bus socket path; set to `unix:path=/run/dbus/system_bus_socket` |
 
-### Finding the correct `PRINTER_PPD` path
+### Finding the correct `PRINTER_MODEL` URI
 
-`printer-driver-brlaser` installs PPD files under `/usr/share/ppd/brlaser/`. To find the right filename for your model, exec into a running container:
+`printer-driver-brlaser` generates PPDs dynamically from `/usr/share/cups/drv/brlaser.drv`. To find the `PCFileName` for your model:
 
 ```bash
-docker exec -it <container_name> find /usr/share/ppd/brlaser/ -name '*1910*'
+docker run --rm --entrypoint bash ghcr.io/GITHUB_OWNER/truenas-airprint-relay:latest \
+  -c "grep -i 'PCFileName\|ModelName' /usr/share/cups/drv/brlaser.drv"
+```
+
+Take the `PCFileName` value (e.g. `br1910w.ppd`) and set:
+
+```
+PRINTER_MODEL=drv:///brlaser.drv/br1910w.ppd
 ```
 
 ### Finding a valid `SCANNER_MODEL` string
