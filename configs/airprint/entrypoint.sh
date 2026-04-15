@@ -80,14 +80,29 @@ done
 
 # ── 6. Configure CUPS policies and add printer ────────────────────────────────
 echo "[6/7] Configuring CUPS policies and registering printer..."
-cupsctl -h localhost:631 --share-printers --remote-admin --remote-any
 
-lpadmin \
-    -h localhost:631 \
-    -p "${PRINTER_NAME}" \
-    -E \
-    -v "${PRINTER_URI}" \
-    -m "${PRINTER_MODEL}"
+# cupsctl and lpadmin connect to the admin interface, which can become ready
+# slightly after the HTTP health check passes. Retry until they succeed.
+for i in $(seq 1 10); do
+    out=$(cupsctl -h localhost:631 --share-printers --remote-admin --remote-any 2>&1)
+    echo "${out}"
+    echo "${out}" | grep -qiE "bad file descriptor|unable to connect" \
+        || { echo "        cupsctl OK."; break; }
+    [ "${i}" -eq 10 ] && { echo "ERROR: cupsctl failed after 10 attempts." >&2; exit 1; }
+    echo "        cupsctl not ready, retrying in 2s... (${i}/10)"
+    sleep 2
+done
+
+for i in $(seq 1 10); do
+    out=$(lpadmin -h localhost:631 \
+        -p "${PRINTER_NAME}" -E -v "${PRINTER_URI}" -m "${PRINTER_MODEL}" 2>&1)
+    echo "${out}"
+    echo "${out}" | grep -qiE "bad file descriptor|unable to connect" \
+        || { echo "        lpadmin OK."; break; }
+    [ "${i}" -eq 10 ] && { echo "ERROR: lpadmin failed after 10 attempts." >&2; exit 1; }
+    echo "        lpadmin not ready, retrying in 2s... (${i}/10)"
+    sleep 2
+done
 
 cupsenable -h localhost:631 "${PRINTER_NAME}"
 cupsaccept -h localhost:631 "${PRINTER_NAME}"
