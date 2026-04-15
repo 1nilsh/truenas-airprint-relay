@@ -21,7 +21,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && rm -rf /var/lib/apt/lists/*
 
 ARG AIRSANE_REPO=https://github.com/SimulPiscator/AirSane.git
-ARG AIRSANE_REF=v.0.4.10
+ARG AIRSANE_REF=v0.4.9
 
 RUN git clone --depth=1 --branch "${AIRSANE_REF}" "${AIRSANE_REPO}" /airsane-src
 
@@ -41,6 +41,9 @@ FROM debian:bookworm-slim
 ARG BRSCAN4_URL
 
 RUN test -n "${BRSCAN4_URL}" || { echo "ERROR: BRSCAN4_URL build-arg is required"; exit 1; }
+
+# Brother brscan4 is distributed as amd64 .deb only.
+RUN [ "$(dpkg --print-architecture)" = "amd64" ] || { echo "ERROR: this image requires amd64 (x86_64)"; exit 1; }
 
 # Runtime dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

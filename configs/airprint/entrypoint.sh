@@ -13,6 +13,15 @@ set -euo pipefail
 : "${PRINTER_MODEL:?PRINTER_MODEL is required}"
 : "${AIRSANE_PORT:?AIRSANE_PORT is required}"
 
+# AirSane runtime toggles. Defaults are conservative because some SANE backends
+# crash when hotplug/mDNS paths are enabled in minimal container environments.
+AIRSANE_DEBUG="${AIRSANE_DEBUG:-true}"
+AIRSANE_ACCESS_LOG="${AIRSANE_ACCESS_LOG:--}"
+AIRSANE_MDNS_ANNOUNCE="${AIRSANE_MDNS_ANNOUNCE:-false}"
+AIRSANE_HOTPLUG="${AIRSANE_HOTPLUG:-false}"
+AIRSANE_NETWORK_HOTPLUG="${AIRSANE_NETWORK_HOTPLUG:-false}"
+AIRSANE_EXTRA_ARGS="${AIRSANE_EXTRA_ARGS:-}"
+
 # ── 1. Configure brscan4 scanner backend ─────────────────────────────────────
 echo "[1/7] Registering scanner with brscan4 (${SCANNER_NAME} / ${SCANNER_MODEL} @ ${SCANNER_IP})..."
 # brsaneconfig4 exits non-zero if the entry already exists (container restart)
@@ -109,8 +118,49 @@ echo "        Printer '${PRINTER_NAME}' registered (${PRINTER_URI})."
 
 # ── 7. Start AirSane ─────────────────────────────────────────────────────────
 echo "[7/7] Starting AirSane on port ${AIRSANE_PORT}..."
-airsaned --listen-port="${AIRSANE_PORT}" &
-AIRSANE_PID=$!
+
+echo "        Probing SANE devices before starting AirSane..."
+if scanimage -L > /tmp/scanimage.log 2>&1; then
+    sed 's/^/        /' /tmp/scanimage.log
+else
+    echo "        WARNING: scanimage probe failed (continuing):"
+    sed 's/^/        /' /tmp/scanimage.log || true
+fi
+
+_start_airsane() {
+    local cmd=(
+        airsaned
+        "--listen-port=${AIRSANE_PORT}"
+        "--debug=${AIRSANE_DEBUG}"
+        "--access-log=${AIRSANE_ACCESS_LOG}"
+        "--mdns-announce=${AIRSANE_MDNS_ANNOUNCE}"
+        "--hotplug=${AIRSANE_HOTPLUG}"
+        "--network-hotplug=${AIRSANE_NETWORK_HOTPLUG}"
+    )
+
+    if [ -n "${AIRSANE_EXTRA_ARGS}" ]; then
+        # Intentionally split user-provided args on whitespace.
+        # shellcheck disable=SC2206
+        local extra=( ${AIRSANE_EXTRA_ARGS} )
+        cmd+=("${extra[@]}")
+    fi
+
+    echo "        AirSane command: ${cmd[*]}"
+    "${cmd[@]}" &
+    AIRSANE_PID=$!
+}
+
+_start_airsane
+
+# Detect fast-crash startup failures early to produce a useful error message.
+sleep 2
+if ! kill -0 "${AIRSANE_PID}" 2>/dev/null; then
+    wait "${AIRSANE_PID}" 2>/dev/null || true
+    echo "ERROR: AirSane exited during startup (possible backend crash)." >&2
+    echo "       If this started after upgrading AirSane, try AIRSANE_REF=v0.4.9 at build time." >&2
+    echo "       Also verify SCANNER_MODEL and check scanimage output above." >&2
+    exit 1
+fi
 
 echo "════════════════════════════════════════"
 echo " CUPS:     http://0.0.0.0:631"

@@ -33,6 +33,11 @@ configs/airprint/
 - A Brother printer/scanner reachable on the local network
 - TrueNAS Scale **Electric Eel (24.10)** or later (Docker Compose custom apps)
 - A GitHub account to host the container image on `ghcr.io`
+- Target runtime architecture: **linux/amd64** (required by Brother brscan4)
+
+Note for Apple Silicon development hosts: local native builds are not representative,
+because brscan4 is amd64-only. Build/publish for amd64 and validate on an amd64 runtime
+(e.g. TrueNAS Scale).
 
 ---
 
@@ -111,6 +116,11 @@ services:
       SCANNER_MODEL: "MFC-1910W"
       AIRSANE_PORT: "8090"
       DBUS_SYSTEM_BUS_ADDRESS: "unix:path=/run/dbus/system_bus_socket"
+      AIRSANE_DEBUG: "true"
+      AIRSANE_ACCESS_LOG: "-"
+      AIRSANE_MDNS_ANNOUNCE: "false"
+      AIRSANE_HOTPLUG: "false"
+      AIRSANE_NETWORK_HOTPLUG: "false"
 
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:631/"]
@@ -145,6 +155,12 @@ All runtime behaviour is controlled via environment variables. Nothing is hard-c
 | `SCANNER_NAME` | yes | Friendly name registered with brscan4 |
 | `SCANNER_MODEL` | yes | Model string recognised by brscan4 (see below) |
 | `AIRSANE_PORT` | yes | Port AirSane listens on; must match the port mapping |
+| `AIRSANE_DEBUG` | no | AirSane debug logging (`true`/`false`, default `true`) |
+| `AIRSANE_ACCESS_LOG` | no | AirSane HTTP access log destination (default `-` for stdout) |
+| `AIRSANE_MDNS_ANNOUNCE` | no | Enable AirSane mDNS announcements (`true`/`false`, default `false`) |
+| `AIRSANE_HOTPLUG` | no | Enable scanner hotplug reload (`true`/`false`, default `false`) |
+| `AIRSANE_NETWORK_HOTPLUG` | no | Enable network-change reload (`true`/`false`, default `false`) |
+| `AIRSANE_EXTRA_ARGS` | no | Extra raw CLI args appended to `airsaned` |
 | `DBUS_SYSTEM_BUS_ADDRESS` | recommended | Override D-Bus socket path; set to `unix:path=/run/dbus/system_bus_socket` |
 
 ### Finding the correct `PRINTER_MODEL` URI
@@ -180,7 +196,7 @@ These are set at image build time, not at runtime.
 |---|---|---|
 | `BRSCAN4_URL` | yes | URL of the brscan4 `.deb` to download during build |
 | `AIRSANE_REPO` | no | Git remote for AirSane (default: upstream GitHub) |
-| `AIRSANE_REF` | no | Tag or branch to build AirSane from (default: `v.0.4.10`) |
+| `AIRSANE_REF` | no | Tag or branch to build AirSane from (default: `v0.4.9`) |
 
 ---
 

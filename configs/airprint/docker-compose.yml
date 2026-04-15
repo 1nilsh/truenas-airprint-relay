@@ -35,3 +35,11 @@ services:
 
       # ── AirSane listener port (must match the port mapping above) ──────────
       AIRSANE_PORT: "8090"
+
+      # ── AirSane stability/debug knobs (useful with some brscan4 devices) ───
+      AIRSANE_DEBUG: "true"
+      AIRSANE_ACCESS_LOG: "-"
+      AIRSANE_MDNS_ANNOUNCE: "false"
+      AIRSANE_HOTPLUG: "false"
+      AIRSANE_NETWORK_HOTPLUG: "false"
+      # AIRSANE_EXTRA_ARGS: "--local-scanners-only=true"
